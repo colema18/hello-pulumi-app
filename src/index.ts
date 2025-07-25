@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 5050;
 app.use(cors());
 
 app.get('/api/message', (_req, res) => {
-  res.json({ message: 'abc123' });
+  res.json({ message: 'abc456' });
 });
 
 app.listen(PORT, () => {
