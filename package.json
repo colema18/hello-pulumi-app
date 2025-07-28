@@ -1,6 +1,6 @@
 {
   "name": "hello-pulumi-app",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",

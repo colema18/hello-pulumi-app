@@ -10,8 +10,16 @@ const client = new AppConfigDataClient({
 
 let configToken: string | undefined;
 
-const state = {
-  cachedMessage: process.env.DEFAULT_MESSAGE || "fallback-value",
+interface ConfigState {
+  message: string;
+  logo: string;
+  backgroundColor: string;
+}
+
+const state: ConfigState = {
+  message: process.env.DEFAULT_MESSAGE || "fallback-value",
+  logo: process.env.DEFAULT_LOGO_URL || "/logo.svg",
+  backgroundColor: process.env.DEFAULT_BACKGROUND_COLOR || "#282c34",
 };
 
 async function startSession() {
@@ -30,13 +38,12 @@ async function startSession() {
   }
 }
 
-export async function refreshAppConfig(): Promise<string> {
+export async function refreshAppConfig(): Promise<ConfigState> {
   if (!configToken) {
     await startSession();
   }
   if (!configToken) {
-    // Fallback to .env value
-    return state.cachedMessage;
+    return state;
   }
 
   try {
@@ -52,28 +59,26 @@ export async function refreshAppConfig(): Promise<string> {
       const raw = new TextDecoder().decode(configResponse.Configuration);
       const jsonData = JSON.parse(raw);
 
-      if (jsonData.message) {
-        state.cachedMessage = jsonData.message;
-        console.log("🔄 AppConfig message updated:", state.cachedMessage);
-      } else {
-        // No "message" key, fallback
-        state.cachedMessage = process.env.DEFAULT_MESSAGE || "fallback-value";
-        console.warn("⚠️ AppConfig JSON missing 'message', using fallback");
-      }
+      // Update values if keys exist, otherwise fallback
+      state.message = jsonData.message || process.env.DEFAULT_MESSAGE || state.message;
+      state.logo = jsonData.logo || process.env.DEFAULT_LOGO_URL || state.logo;
+      state.backgroundColor =
+        jsonData.backgroundColor || process.env.DEFAULT_BACKGROUND_COLOR || state.backgroundColor;
+
+      console.log("🔄 AppConfig updated:", state);
     }
   } catch (err) {
-    console.warn("⚠️ Error fetching AppConfig value, using fallback:", err);
-    state.cachedMessage = process.env.DEFAULT_MESSAGE || "fallback-value";
+    console.warn("⚠️ Error fetching AppConfig, using fallback:", err);
   }
 
-  return state.cachedMessage;
+  return state;
 }
 
-export function getAppConfigValue(): string {
-  return state.cachedMessage;
+export function getAppConfigValues(): ConfigState {
+  return state;
 }
 
 export async function initAppConfig(): Promise<void> {
-  await refreshAppConfig(); // First fetch
-  setInterval(refreshAppConfig, 2 * 60 * 1000); // Refresh every 2 mins
+  await refreshAppConfig();
+  setInterval(refreshAppConfig, 2 * 60 * 1000);
 }
