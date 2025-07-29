@@ -1,3 +1,5 @@
+import "dotenv/config"; // <-- Make sure you install dotenv: npm i dotenv
+
 import {
   AppConfigDataClient,
   StartConfigurationSessionCommand,
@@ -16,11 +18,18 @@ interface ConfigState {
   backgroundColor: string;
 }
 
-const state: ConfigState = {
-  message: process.env.DEFAULT_MESSAGE || "fallback-value",
-  logo: process.env.DEFAULT_LOGO_URL || "/logo.svg",
-  backgroundColor: process.env.DEFAULT_BACKGROUND_COLOR || "#282c34",
+// 🔹 Helper to get value with fallback logic
+function getEnvOrDefault(key: string, fallback: string): string {
+  return process.env[key] || fallback;
+}
+
+const defaultState: ConfigState = {
+  message: getEnvOrDefault("DEFAULT_MESSAGE", "fallback-value"),
+  logo: getEnvOrDefault("DEFAULT_LOGO_URL", "/logo.svg"),
+  backgroundColor: getEnvOrDefault("DEFAULT_BACKGROUND_COLOR", "#282c34"),
 };
+
+let state: ConfigState = { ...defaultState };
 
 async function startSession() {
   try {
@@ -33,7 +42,7 @@ async function startSession() {
     );
     configToken = session.InitialConfigurationToken;
   } catch (err) {
-    console.warn("⚠️ Could not start AppConfig session, using fallback:", err);
+    console.warn("Could not start AppConfig session, using fallback:", err);
     configToken = undefined;
   }
 }
@@ -59,16 +68,16 @@ export async function refreshAppConfig(): Promise<ConfigState> {
       const raw = new TextDecoder().decode(configResponse.Configuration);
       const jsonData = JSON.parse(raw);
 
-      // Update values if keys exist, otherwise fallback
-      state.message = jsonData.message || process.env.DEFAULT_MESSAGE || state.message;
-      state.logo = jsonData.logo || process.env.DEFAULT_LOGO_URL || state.logo;
-      state.backgroundColor =
-        jsonData.backgroundColor || process.env.DEFAULT_BACKGROUND_COLOR || state.backgroundColor;
+      state = {
+        message: jsonData.message || defaultState.message,
+        logo: jsonData.logo || defaultState.logo,
+        backgroundColor: jsonData.backgroundColor || defaultState.backgroundColor,
+      };
 
-      console.log("🔄 AppConfig updated:", state);
+      console.log("AppConfig updated:", state);
     }
   } catch (err) {
-    console.warn("⚠️ Error fetching AppConfig, using fallback:", err);
+    console.warn("Error fetching AppConfig, using fallback:", err);
   }
 
   return state;
